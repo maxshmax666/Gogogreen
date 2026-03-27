@@ -31,6 +31,22 @@ source .venv/bin/activate
 pip install -e '.[dev]'
 ```
 
+## Session input formats
+Loader supports both layouts:
+
+- Flat: `sessions/<session_id>/meta.json + points.jsonl`
+- Nested by date: `sessions/YYYY-MM-DD/<session_id>/meta.json + points.jsonl`
+
+Also supported for points ingestion:
+
+- `points.jsonl` (default)
+- `points.csv` fallback (or explicit `points_file_csv` in `meta.json`)
+
+For comments/events:
+
+- `comments.jsonl` (default)
+- `sensor_events.jsonl` via `sensor_events_file_jsonl` in `meta.json`
+
 ## CLI
 
 ```bash

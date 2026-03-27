@@ -36,6 +36,35 @@ def test_optional_comments_missing(tmp_path: Path) -> None:
     assert sessions[0].comments == []
 
 
+def test_nested_session_dir_and_csv_points_fallback(tmp_path: Path) -> None:
+    sdir = tmp_path / "sessions" / "2026-03-27" / "gps-1"
+    sdir.mkdir(parents=True)
+    (sdir / "meta.json").write_text(
+        json.dumps(
+            {
+                "session_id": "gps-1",
+                "points_file_csv": "points.csv",
+                "sensor_events_file_jsonl": "sensor_events.jsonl",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (sdir / "points.csv").write_text(
+        "client_timestamp_ms,latitude,longitude,accuracy_m,speed_mps,heading_deg\n"
+        "1700000000000,55.75,37.61,5,3.2,45\n",
+        encoding="utf-8",
+    )
+    (sdir / "sensor_events.jsonl").write_text(
+        '{"client_timestamp_ms":1700000001000,"latitude":55.75,"longitude":37.61,"text":"red 40"}\n',
+        encoding="utf-8",
+    )
+    sessions = load_sessions(tmp_path / "sessions")
+    assert len(sessions) == 1
+    assert len(sessions[0].points) == 1
+    assert sessions[0].points[0].ts == 1700000000000
+    assert len(sessions[0].comments) == 1
+
+
 def test_speed_heading_fallback() -> None:
     points = _mk_points()
     points[1].speed_mps = 0
