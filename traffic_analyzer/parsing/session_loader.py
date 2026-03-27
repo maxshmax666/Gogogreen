@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 from dataclasses import dataclass
 import json
 import logging
@@ -21,11 +22,11 @@ class SessionData:
 
 
 POINT_ALIASES = {
-    "ts": ["ts", "timestamp", "time", "t"],
+    "ts": ["ts", "timestamp", "time", "t", "client_timestamp_ms", "timestamp_ms"],
     "lat": ["lat", "latitude"],
     "lon": ["lon", "lng", "longitude"],
     "accuracy_m": ["accuracy_m", "accuracy", "acc"],
-    "speed_mps": ["speed_mps", "speed", "velocity"],
+    "speed_mps": ["speed_mps", "speed", "velocity", "speed_ms"],
     "heading_deg": ["heading_deg", "heading", "course", "bearing"],
 }
 
@@ -48,17 +49,55 @@ def _read_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def _read_points_csv(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            rows.append(dict(row))
+    return rows
+
+
+def _resolve_session_file(root: Path, meta: dict[str, Any], preferred_meta_key: str, fallback_name: str) -> Path:
+    # device-export format stores canonical filenames in meta.json
+    rel = meta.get(preferred_meta_key)
+    if isinstance(rel, str) and rel.strip():
+        candidate = root / rel.strip()
+        if candidate.exists():
+            return candidate
+    return root / fallback_name
+
+
+def _iter_session_dirs(sessions_dir: Path) -> list[Path]:
+    # Support both flat layout:
+    #   sessions/<session_id>/meta.json
+    # and nested date layout:
+    #   sessions/YYYY-MM-DD/<session_id>/meta.json
+    session_dirs = {meta.parent for meta in sessions_dir.rglob("meta.json")}
+    return sorted(session_dirs)
+
+
 def load_sessions(sessions_dir: Path) -> list[SessionData]:
     sessions: list[SessionData] = []
-    for root in sorted(p for p in sessions_dir.iterdir() if p.is_dir()):
+    for root in _iter_session_dirs(sessions_dir):
         meta_path = root / "meta.json"
-        points_path = root / "points.jsonl"
-        if not (meta_path.exists() and points_path.exists()):
-            logger.warning("Skipping invalid session dir: %s", root)
+        if not meta_path.exists():
             continue
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         session_id = str(meta.get("session_id") or root.name)
-        raw_points = _read_jsonl(points_path)
+
+        points_jsonl_path = _resolve_session_file(root, meta, "points_file_jsonl", "points.jsonl")
+        points_csv_path = _resolve_session_file(root, meta, "points_file_csv", "points.csv")
+
+        raw_points: list[dict[str, Any]]
+        if points_jsonl_path.exists():
+            raw_points = _read_jsonl(points_jsonl_path)
+        elif points_csv_path.exists():
+            raw_points = _read_points_csv(points_csv_path)
+        else:
+            logger.warning("Skipping invalid session dir (no points): %s", root)
+            continue
+
         points: list[GPSPoint] = []
         for rp in raw_points:
             try:
@@ -76,10 +115,10 @@ def load_sessions(sessions_dir: Path) -> list[SessionData]:
                     )
                 )
             except Exception as exc:  # noqa: BLE001
-                logger.warning("Bad point in %s: %s", points_path, exc)
+                logger.warning("Bad point in %s: %s", root, exc)
 
         comments: list[Comment] = []
-        comments_path = root / "comments.jsonl"
+        comments_path = _resolve_session_file(root, meta, "sensor_events_file_jsonl", "comments.jsonl")
         if comments_path.exists():
             try:
                 for i, rc in enumerate(_read_jsonl(comments_path)):
@@ -87,9 +126,9 @@ def load_sessions(sessions_dir: Path) -> list[SessionData]:
                         Comment(
                             comment_id=f"{session_id}_c_{i}",
                             session_id=session_id,
-                            ts=parse_ts_to_epoch_ms(rc.get("ts") or rc.get("timestamp")),
-                            lat=float(rc.get("lat")),
-                            lon=float(rc.get("lon")),
+                            ts=parse_ts_to_epoch_ms(rc.get("ts") or rc.get("timestamp") or rc.get("client_timestamp_ms")),
+                            lat=float(rc.get("lat") or rc.get("latitude")),
+                            lon=float(rc.get("lon") or rc.get("lng") or rc.get("longitude")),
                             text=str(rc.get("text") or rc.get("comment") or ""),
                         )
                     )
