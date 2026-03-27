@@ -1,0 +1,17 @@
+{
+  "intersections": {
+    "tl_999": {
+      "disabled": true,
+      "label": "Known false positive",
+      "notes": "Parking zone, ignore",
+      "approaches": {
+        "tl_999_a_0": {
+          "force_cycle_sec": 80,
+          "force_green_sec": 35,
+          "force_red_sec": 45,
+          "manually_verified": true
+        }
+      }
+    }
+  }
+}

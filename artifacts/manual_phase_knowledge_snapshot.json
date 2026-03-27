@@ -1,0 +1,18 @@
+[
+  {
+    "annotation_id": "ann_s1_c_0",
+    "session_id": "s1",
+    "ts": 1700000010000,
+    "lat": 55.0001,
+    "lon": 37.0,
+    "heading_deg": 0.0,
+    "raw_text": "red 45",
+    "parsed_phase": "red",
+    "parsed_seconds": 45.0,
+    "semantic_type": "remaining_time",
+    "linked_observation_id": null,
+    "linked_intersection_id": null,
+    "linked_approach_id": null,
+    "confidence": 0.9
+  }
+]

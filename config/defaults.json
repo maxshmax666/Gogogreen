@@ -1,0 +1,14 @@
+{
+  "events": {
+    "low_speed_mps": 0.9,
+    "move_speed_mps": 2.0,
+    "min_stop_duration_sec": 4.0,
+    "max_stop_duration_sec": 180.0
+  },
+  "inference": {
+    "time_slot_minutes": 15,
+    "min_samples_for_cycle": 3,
+    "strong_manual_threshold": 3,
+    "stable_std_threshold_sec": 3.5
+  }
+}
