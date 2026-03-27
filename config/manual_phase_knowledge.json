@@ -1,0 +1,14 @@
+{
+  "knowledge_version": 1,
+  "notes": "Persistent manual knowledge store",
+  "entries": [
+    {
+      "intersection_id": "tl_001",
+      "approach_id": "tl_001_a_2",
+      "phase": "red",
+      "duration_sec": 45,
+      "confidence": 0.8,
+      "source": "manual_verified"
+    }
+  ]
+}

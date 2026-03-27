@@ -1,0 +1,11 @@
+{
+  "sessions_total": 1,
+  "observations_total": 0,
+  "annotations_total": 1,
+  "intersections_total": 0,
+  "confidence_distribution": {
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  }
+}
