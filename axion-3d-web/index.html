@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#080d14" />
+  <meta name="description" content="Интерактивная 3D-модель турбинного двигателя. Вращайте, изучайте детали и раздвигайте узлы." />
+  <title>AXION XR-9 — интерактивный 3D-двигатель</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+    :root{color-scheme:dark;--bg:#080d14;--panel:#101923;--line:#253443;--muted:#8b9baa;--text:#ecf4f8;--cyan:#70d5e8;--orange:#f1a05d;--mono:'DM Mono',monospace;--sans:'Manrope',ui-sans-serif,system-ui,Segoe UI,Arial}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);overflow-x:hidden} button,input{font:inherit} button{cursor:pointer}
+    .site-header{height:72px;border-bottom:1px solid #1a2734;display:flex;align-items:center;justify-content:space-between;padding:0 4.2vw;gap:20px;background:#0a1019}
+    .brand{display:flex;align-items:center;gap:13px;font-size:20px;font-weight:800;letter-spacing:.14em;white-space:nowrap}.brand-icon{display:grid;place-items:center;width:32px;height:32px;border:2px solid var(--cyan);border-radius:9px;transform:rotate(-12deg)}.brand-icon span{transform:rotate(12deg);font:700 16px var(--mono)}.brand small{font-size:10px;letter-spacing:.1em;font-weight:500;color:#7c93a5}
+    .status{display:flex;align-items:center;gap:10px;font:11px var(--mono);color:#90a4b0;letter-spacing:.1em}.status-dot{height:7px;width:7px;background:#6ff2b9;border-radius:50%;box-shadow:0 0 13px #6ff2b988}.header-right{display:flex;align-items:center;gap:25px}.header-tag{font:11px var(--mono);border:1px solid #304455;border-radius:5px;padding:9px 12px;color:#a3b5c5}
+    .hero{padding:42px 4.2vw 24px;display:grid;grid-template-columns:minmax(0,1.2fr) minmax(230px,.7fr);align-items:end;gap:26px}.eyebrow{font:12px var(--mono);color:var(--cyan);letter-spacing:.16em;margin:0 0 16px}.hero h1{font-size:clamp(46px,6.1vw,99px);line-height:1.01;letter-spacing:-.075em;margin:0;font-weight:800}.hero h1 span{color:var(--cyan)}.hero p{color:#96a8b6;font-size:14px;line-height:1.7;max-width:415px;margin:0 0 3px}.hero-note{display:flex;justify-content:flex-end;align-items:end;gap:13px;color:#647887;font:11px var(--mono);text-transform:uppercase;letter-spacing:.11em}.hero-note:before{content:'';display:block;background:#354756;width:36px;height:1px;margin-bottom:7px}
+    .workarea{display:grid;grid-template-columns:minmax(0,1fr) 310px;min-height:590px;border-block:1px solid #273441;margin:0 4.2vw;background:#0a121c}
+    .viewport{position:relative;min-width:0;min-height:575px;overflow:hidden;background:radial-gradient(ellipse at 48% 40%,#183247 0%,#0b1622 38%,#080e16 77%)}
+    #renderCanvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}#renderCanvas:active{cursor:grabbing}
+    .viewport:before{content:'';pointer-events:none;z-index:1;position:absolute;inset:16px;border:1px solid #28374666;border-radius:2px}
+    .viewport:after{content:'';pointer-events:none;z-index:1;position:absolute;inset:0;background:linear-gradient(0deg,#0a1019a3,transparent 23%)}
+    .corner-label{position:absolute;z-index:3;left:32px;top:28px;display:flex;align-items:center;gap:10px;font:10px var(--mono);letter-spacing:.16em;color:#93a9b5}.corner-label b{font-weight:500;color:#e8f2f7}.corner-label .number{display:grid;place-items:center;background:#1d3747;color:var(--cyan);width:28px;height:28px;border:1px solid #426477;border-radius:3px}
+    .canvas-loading{position:absolute;inset:0;display:grid;place-items:center;z-index:2;background:#0b1522;color:#9eb9c8;font:12px var(--mono);text-align:center;padding:30px}
+    .canvas-loading[hidden]{display:none}.canvas-loading div{max-width:330px;line-height:1.8}
+    .float-chip{position:absolute;z-index:3;right:25px;top:26px;background:#0b1722cf;border:1px solid #34506580;color:#bcd3df;border-radius:4px;padding:11px 13px;font:11px var(--mono)}.float-chip span{color:#6ee5af;margin-right:7px}
+    .scene-footer{position:absolute;left:32px;right:32px;bottom:27px;display:flex;justify-content:space-between;align-items:end;gap:14px;z-index:4;pointer-events:none}.scene-footer .hint{font:11px var(--mono);line-height:1.8;color:#a0b0bd}.legend{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.legend b{font:10px var(--mono);font-weight:400;border:1px solid #2e4354;background:#0b1721d9;border-radius:4px;padding:9px 10px;color:#a4c1ce}
+    .controls{border-left:1px solid #293847;background:linear-gradient(180deg,#101e29,#0c1721);padding:24px;display:flex;flex-direction:column;min-width:0}
+    .panel-eyebrow{font:11px var(--mono);letter-spacing:.17em;color:#7998aa;padding-bottom:18px;border-bottom:1px solid #2c3c47;margin-bottom:23px}.panel-title{font-size:21px;font-weight:800;letter-spacing:-.05em;margin:0 0 9px}.panel-desc{font-size:12px;line-height:1.65;color:#839ba9;margin:0 0 24px}
+    .component-list{display:grid;gap:6px}.part-btn{width:100%;border:1px solid transparent;background:transparent;color:#a4b7c4;text-align:left;padding:12px 11px;border-radius:5px;display:flex;align-items:center;justify-content:space-between;font-size:12px;transition:background .15s}.part-btn:hover{background:#1a2b38}.part-btn[aria-pressed="true"]{border-color:#477b88;background:#18303b;color:#eefbff}.part-number{font:10px var(--mono);color:#6f879a;margin-right:8px}.part-arrow{font-size:18px;line-height:1;color:#6c96a8}
+    .details{margin-top:18px;border:1px solid #304352;background:#112433;padding:14px;border-radius:6px;min-height:111px}.details small{display:block;color:var(--cyan);font:10px var(--mono);margin-bottom:7px}.details strong{display:block;font-size:14px;margin-bottom:5px}.details p{font-size:11px;line-height:1.55;margin:0;color:#96afbf}
+    .control-stack{margin-top:auto;padding-top:25px}.row-between{display:flex;justify-content:space-between;gap:10px;align-items:center}.range-label{font-size:12px;font-weight:700}.range-value{font:11px var(--mono);color:var(--cyan)}
+    input[type="range"]{width:100%;margin:15px 0 21px;accent-color:var(--cyan);cursor:pointer}.action-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.btn{min-height:42px;display:flex;justify-content:center;align-items:center;gap:8px;border-radius:5px;font-size:11px;font-weight:800;border:1px solid #345264;background:#192c3b;color:#dbeaf0}.btn.primary{background:var(--cyan);border-color:var(--cyan);color:#051018}.btn:hover{filter:brightness(1.12)}.btn:focus-visible,.part-btn:focus-visible,input:focus-visible{outline:2px solid #a4f7ff;outline-offset:2px}
+    .bottom{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:22px 4.2vw 45px;color:#7c91a0}.bottom .metric{display:flex;align-items:center;gap:14px}.bottom .metric b{font:22px var(--mono);color:#d7e6ef}.bottom .metric span{font:11px var(--mono);letter-spacing:.08em}.bottom .disclaimer{max-width:410px;font-size:11px;line-height:1.6;text-align:right}
+    @media(max-width:1000px){.workarea{grid-template-columns:minmax(0,1fr) 270px}.hero h1{font-size:clamp(43px,7vw,76px)}.controls{padding:19px}.viewport{min-height:540px}}
+    @media(max-width:760px){.site-header{height:64px;padding:0 18px}.header-tag,.hero-note{display:none}.hero{display:block;padding:32px 22px 22px}.hero h1{font-size:clamp(44px,12vw,70px)}.hero p{margin-top:18px;font-size:13px}.workarea{display:flex;flex-direction:column;margin:0 10px}.viewport{min-height:420px;height:57vh;max-height:600px}.controls{border-left:0;border-top:1px solid #293847}.component-list{grid-template-columns:1fr 1fr}.controls .control-stack{margin-top:12px}.scene-footer{left:22px;right:20px;bottom:20px}.scene-footer .hint{font-size:10px}.legend{display:none}.corner-label{left:22px;top:20px}.float-chip{top:20px;right:20px;font-size:10px}.bottom{padding:22px 18px 40px;align-items:flex-start}.bottom .metric b{font-size:17px}.bottom .disclaimer{font-size:10px}}
+    @media(max-width:380px){.component-list{grid-template-columns:1fr}.viewport{min-height:380px}.bottom .disclaimer{display:none}.hero h1{font-size:43px}.status{font-size:9px}}
+  </style>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand"><div class="brand-icon"><span>A</span></div><span>AXION <small> / LABS</small></span></div>
+    <div class="header-right"><span class="status"><i class="status-dot"></i> INTERACTIVE 3D / ONLINE</span><span class="header-tag">CONCEPT 001 — 2026</span></div>
+  </header>
+  <section class="hero">
+    <div><p class="eyebrow">ENGINEERING / EXPLORE THE INSIDE</p><h1>POWER IN<br/><span>MOTION.</span></h1></div>
+    <div><p>Разбери двигатель на составные части. Изучи устройство турбины и почувствуй механику движения прямо в браузере.</p><div class="hero-note">EXPLORE · UNDERSTAND · BUILD</div></div>
+  </section>
+  <main class="workarea">
+    <section class="viewport" id="viewport" aria-label="Интерактивная 3D-модель турбинного двигателя">
+      <canvas id="renderCanvas" aria-label="Вращайте модель пальцем или мышью. Для приближения используйте два пальца или колесо мыши."></canvas>
+      <div id="canvasLoading" class="canvas-loading"><div>ЗАГРУЗКА 3D-СЦЕНЫ…<br/>Для первого запуска требуется соединение с интернетом.</div></div>
+      <div class="corner-label"><span class="number">01</span><span>AXIAL TURBINE <b>XR–9</b></span></div>
+      <div class="float-chip"><span>●</span> LIVE 3D VIEW</div>
+      <div class="scene-footer"><div class="hint">↔ ВРАЩАТЬ: ПАЛЕЦ / МЫШЬ<br/>⊕ МАСШТАБ: 2 ПАЛЬЦА / КОЛЕСО</div><div class="legend"><b>5 СЕКЦИЙ</b><b>ВЗРЫВ-СХЕМА</b><b>360° VIEW</b></div></div>
+    </section>
+    <aside class="controls">
+      <div class="panel-eyebrow">// COMPONENT EXPLORER</div>
+      <h2 class="panel-title">Внутри машины</h2>
+      <p class="panel-desc">Выбери компонент или нажми на деталь в 3D-сцене, чтобы узнать её назначение.</p>
+      <div class="component-list" id="componentList">
+        <button type="button" class="part-btn" data-part="inlet" aria-pressed="false"><span><span class="part-number">01</span> Воздухозаборник</span><span class="part-arrow">↗</span></button>
+        <button type="button" class="part-btn" data-part="compressor" aria-pressed="true"><span><span class="part-number">02</span> Компрессор</span><span class="part-arrow">↗</span></button>
+        <button type="button" class="part-btn" data-part="chamber" aria-pressed="false"><span><span class="part-number">03</span> Камера сгорания</span><span class="part-arrow">↗</span></button>
+        <button type="button" class="part-btn" data-part="turbine" aria-pressed="false"><span><span class="part-number">04</span> Турбина</span><span class="part-arrow">↗</span></button>
+        <button type="button" class="part-btn" data-part="nozzle" aria-pressed="false"><span><span class="part-number">05</span> Сопло</span><span class="part-arrow">↗</span></button>
+      </div>
+      <div class="details" id="partDetails" aria-live="polite"><small>02 / ВЫБРАННЫЙ УЗЕЛ</small><strong>Компрессор</strong><p>Роторные лопатки сжимают поступающий воздух перед камерой сгорания.</p></div>
+      <div class="control-stack">
+        <div class="row-between"><label class="range-label" for="explode">Разнести детали</label><output class="range-value" id="explodeValue">35%</output></div>
+        <input type="range" id="explode" min="0" max="100" value="35" />
+        <div class="row-between"><label class="range-label" for="speed">Скорость вращения</label><output class="range-value" id="speedValue">60%</output></div>
+        <input type="range" id="speed" min="0" max="100" value="60" />
+        <div class="action-row"><button type="button" class="btn primary" id="toggleMotion">Ⅱ Пауза</button><button type="button" class="btn" id="resetView">↺ Сброс вида</button></div>
+      </div>
+    </aside>
+  </main>
+  <footer class="bottom"><div class="metric"><b>XR–9</b><span>CONCEPT / 3D SERIES</span></div><div class="disclaimer">Интерактивный художественный прототип двигателя, не инженерная CAD-модель. Работает в браузере на компьютере и планшете.</div></footer>
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    const parts = {
+      inlet: {number:'01',name:'Воздухозаборник',desc:'Направляет поток воздуха внутрь двигателя и снижает турбулентность перед компрессором.',x:-2.92,accent:0x70d5e8},
+      compressor:{number:'02',name:'Компрессор',desc:'Роторные лопатки сжимают поступающий воздух перед камерой сгорания.',x:-1.50,accent:0x70d5e8},
+      chamber:{number:'03',name:'Камера сгорания',desc:'Воздух смешивается с топливом. Горячий поток передаёт энергию турбине.',x:.12,accent:0xf0a363},
+      turbine:{number:'04',name:'Турбина',desc:'Поток горячих газов вращает лопатки и приводит компрессор через общий вал.',x:1.62,accent:0xf0a363},
+      nozzle:{number:'05',name:'Сопло',desc:'Формирует поток газа на выходе двигателя. Здесь показана стилизованная геометрия.',x:2.89,accent:0x70d5e8}
+    };
+    const sequence=Object.keys(parts);
+    const viewport=document.getElementById('viewport');
+    const canvas=document.getElementById('renderCanvas');
+    const loading=document.getElementById('canvasLoading');
+    const explodeControl=document.getElementById('explode');
+    const speedControl=document.getElementById('speed');
+    const explodeValue=document.getElementById('explodeValue');
+    const speedValue=document.getElementById('speedValue');
+    const toggle=document.getElementById('toggleMotion');
+    const details=document.getElementById('partDetails');
+    const reset=document.getElementById('resetView');
+    const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.8));
+    renderer.outputColorSpace=THREE.SRGBColorSpace;
+    renderer.toneMapping=THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure=1.25;
+    const scene=new THREE.Scene();
+    scene.fog=new THREE.FogExp2(0x07111b,.022);
+    const camera=new THREE.PerspectiveCamera(36,1,.1,100);
+    const initialPosition=new THREE.Vector3(8.7,5.4,10.4);
+    camera.position.copy(initialPosition);
+    const controls=new OrbitControls(camera,canvas);
+    controls.enableDamping=true;controls.dampingFactor=.07;controls.minDistance=7;controls.maxDistance=21;
+    controls.enablePan=false;controls.target.set(0,0,0);controls.maxPolarAngle=Math.PI*.85;
+    const world=new THREE.Group();world.position.y=.27;scene.add(world);
+    scene.add(new THREE.HemisphereLight(0x9acfee,0x1a0a04,2.0));
+    const key=new THREE.DirectionalLight(0xd6f1ff,3.4);key.position.set(-4,8,7);scene.add(key);
+    const rim=new THREE.DirectionalLight(0xffa368,3.0);rim.position.set(2,-1,-6);scene.add(rim);
+    const fill=new THREE.PointLight(0x46c8eb,65,17);fill.position.set(-2,2.2,4);scene.add(fill);
+    const warm=new THREE.PointLight(0xffa768,45,12);warm.position.set(2,1,0);scene.add(warm);
+    const metal=new THREE.MeshStandardMaterial({color:0x7898ae,metalness:.86,roughness:.29});
+    const darkMetal=new THREE.MeshStandardMaterial({color:0x172b39,metalness:.85,roughness:.34});
+    const steel=new THREE.MeshStandardMaterial({color:0xa5c7d6,metalness:.87,roughness:.22});
+    const gold=new THREE.MeshStandardMaterial({color:0xb98448,metalness:.78,roughness:.29});
+    const copper=new THREE.MeshStandardMaterial({color:0xfa9654,metalness:.7,roughness:.26,emissive:0x54220c,emissiveIntensity:.4});
+    const glass=new THREE.MeshPhysicalMaterial({color:0x5fbdcf,metalness:.24,roughness:.24,transparent:true,opacity:.16,side:THREE.DoubleSide,depthWrite:false});
+    const glow=new THREE.MeshBasicMaterial({color:0x76dcf1});
+    const flame=new THREE.MeshBasicMaterial({color:0xffa466});
+    const cyl=(r1,r2,len,mat,radial=48)=>{const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,len,radial),mat);m.rotation.z=Math.PI/2;return m;};
+    const ring=(radius,tube,mat)=>{const m=new THREE.Mesh(new THREE.TorusGeometry(radius,tube,10,80),mat);m.rotation.y=Math.PI/2;return m;};
+    const stageGroups={};const rotorGroups=[];
+    function part(group,mesh,id){mesh.userData.part=id;group.add(mesh);return mesh;}
+    function row(group,x,radius,count,material,id,offset=0, width=.63){
+      const rotor=new THREE.Group();rotor.position.x=x;rotor.userData.part=id;
+      rotor.add(cyl(.31,.31,.15,darkMetal));
+      rotor.add(ring(radius,.045,material));
+      for(let i=0;i<count;i++){
+        const angle=i/count*Math.PI*2+offset;
+        const p=new THREE.Group();p.rotation.x=angle;
+        const blade=new THREE.Mesh(new THREE.BoxGeometry(.12,width,.19),material);
+        blade.position.set(0,.35+width/2,0);blade.rotation.x=.3;
+        blade.userData.part=id;p.add(blade);rotor.add(p);
+      }
+      group.add(rotor);rotorGroups.push(rotor);
+    }
+    function createStage(id){const group=new THREE.Group();group.userData.part=id;world.add(group);stageGroups[id]=group;return group}
+    // Inlet with inner concentrator and structural rim.
+    {const g=createStage('inlet');
+      part(g,cyl(1.29,1.48,.72,glass),'inlet').position.x=-2.88;
+      for(const [x,r,t] of [[-3.25,1.44,.095],[-2.65,1.28,.06]]){const m=part(g,ring(r,t,metal),'inlet');m.position.x=x}
+      for(let a=0;a<12;a++){const theta=a*Math.PI/6;const m=part(g,new THREE.Mesh(new THREE.BoxGeometry(.62,.09,.11),steel),'inlet');m.position.set(-2.99,Math.cos(theta)*1.15,Math.sin(theta)*1.15);m.rotation.x=theta}
+      const tip=part(g,cyl(.21,.48,.7,metal),'inlet');tip.position.x=-3.05;
+      const lip=part(g,ring(1.45,.02,glow),'inlet');lip.position.x=-3.35;
+    }
+    // Multi-row compressor, two visible stators and bronze fasteners.
+    {const g=createStage('compressor');
+      for(const [x,r] of [[-2.23,1.27],[-1.64,1.22],[-1.05,1.17]]){
+        row(g,x,r,16,steel,'compressor',.15,.64);
+        const rim=part(g,ring(r,.075,darkMetal),'compressor');rim.position.x=x+.21;
+        const detail=part(g,ring(r,.016,glow),'compressor');detail.position.x=x+.18;
+      }
+      const shell=part(g,cyl(1.22,1.25,1.65,glass),'compressor');shell.position.x=-1.59;
+      for(let i=0;i<8;i++){
+        const a=i*Math.PI/4;const rod=part(g,cyl(.033,.033,1.65,metal),'compressor');rod.position.set(-1.58,Math.cos(a)*1.32,Math.sin(a)*1.32);
+      }
+    }
+    // Combustion chamber with luminous injector arrays.
+    {const g=createStage('chamber');
+      const shell=part(g,cyl(1.24,1.24,1.4,glass),'chamber');shell.position.x=.05;
+      for(const x of [-.68,-.28,.21,.73]){const m=part(g,ring(1.25,.07,metal),'chamber');m.position.x=x}
+      for(let i=0;i<12;i++){
+        const a=i*Math.PI/6;
+        const pipe=part(g,cyl(.11,.11,1.12,i%2?copper:gold,12),'chamber');pipe.position.set(.04,Math.cos(a)*.86,Math.sin(a)*.86);
+        const dot=part(g,new THREE.Mesh(new THREE.SphereGeometry(.105,12,9),flame),'chamber');dot.position.set(.65,Math.cos(a)*.86,Math.sin(a)*.86);
+      }
+      for(let i=0;i<14;i++){
+        const x=-.62+i*.1;const m=part(g,ring(1.17,.018,i%2?gold:metal),'chamber');m.position.x=x;
+      }
+    }
+    // Hot turbine stages.
+    {const g=createStage('turbine');
+      for(const [x,r] of [[1.15,1.24],[1.65,1.16],[2.13,1.06]]){row(g,x,r,13,gold,'turbine',.13,.68);const m=part(g,ring(r+.01,.067,darkMetal),'turbine');m.position.x=x+.19}
+      for(const [x,r] of [[.91,1.3],[2.4,1.09]]){const m=part(g,ring(r,.09,copper),'turbine');m.position.x=x}
+    }
+    // Exit nozzle with segmented petals.
+    {const g=createStage('nozzle');
+      const tube=part(g,cyl(.75,1.1,1.05,glass),'nozzle');tube.position.x=2.95;
+      for(const [x,r] of [[2.43,1.12],[3.02,.94],[3.54,.72]]){const m=part(g,ring(r,.082,metal),'nozzle');m.position.x=x}
+      for(let i=0;i<12;i++){
+        const a=i*Math.PI/6;const m=part(g,new THREE.Mesh(new THREE.BoxGeometry(1.05,.45,.085),i%2?darkMetal:metal),'nozzle');m.position.set(3.01,Math.cos(a)*.92,Math.sin(a)*.92);m.rotation.x=a;m.rotation.z=.15;
+      }
+      const ringGlow=part(g,ring(.68,.025,flame),'nozzle');ringGlow.position.x=3.58;
+    }
+    // Common shaft / axial navigation guide.
+    const shaft=cyl(.13,.13,6.2,darkMetal);world.add(shaft);
+    for(const x of [-3.4,-2.8,2.5,3.55]){const m=ring(.26,.065,metal);m.position.x=x;world.add(m)}
+    const floor=new THREE.GridHelper(21,21,0x1b4c60,0x153040);floor.position.y=-2.03;floor.material.transparent=true;floor.material.opacity=.26;scene.add(floor);
+    const stars=[];for(let i=0;i<230;i++){const theta=i*2.39996;const r=6+(i%29)*.37;stars.push(Math.cos(theta)*r,((i*19)%61)/9-3.5,-8-Math.sin(theta)*r)}
+    const ptsGeom=new THREE.BufferGeometry();ptsGeom.setAttribute('position',new THREE.Float32BufferAttribute(stars,3));scene.add(new THREE.Points(ptsGeom,new THREE.PointsMaterial({color:0x427e9a,size:.033,transparent:true,opacity:.63})));
+    const cursor=new THREE.Mesh(new THREE.TorusGeometry(1.55,.012,7,90),new THREE.MeshBasicMaterial({color:0x71def1,transparent:true,opacity:.55}));cursor.rotation.y=Math.PI/2;world.add(cursor);
+    let selected='compressor',explosion=.35,targetExplosion=.35,speed=.6,moving=!window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function positionStages(){sequence.forEach((id,index)=>{stageGroups[id].position.x=(index-2)*explosion*1.22});cursor.position.x=parts[selected].x+(sequence.indexOf(selected)-2)*explosion*1.22;cursor.scale.setScalar(selected==='chamber'?1.0:selected==='nozzle'?.65:1.0)}
+    function select(id){if(!parts[id])return;selected=id;document.querySelectorAll('.part-btn').forEach(x=>x.setAttribute('aria-pressed',String(x.dataset.part===id)));
+      details.innerHTML=`<small>${parts[id].number} / ВЫБРАННЫЙ УЗЕЛ</small><strong>${parts[id].name}</strong><p>${parts[id].desc}</p>`;cursor.material.color.setHex(parts[id].accent);positionStages();}
+    document.getElementById('componentList').addEventListener('click',e=>{const btn=e.target.closest('[data-part]');if(btn)select(btn.dataset.part)});
+    explodeControl.addEventListener('input',e=>{targetExplosion=Number(e.target.value)/100;explodeValue.textContent=e.target.value+'%'});
+    speedControl.addEventListener('input',e=>{speed=Number(e.target.value)/100;speedValue.textContent=e.target.value+'%'});
+    function updateMotionButton(){toggle.textContent=moving?'Ⅱ Пауза':'▶ Запуск';toggle.setAttribute('aria-pressed',String(moving))}
+    toggle.addEventListener('click',()=>{moving=!moving;updateMotionButton()});updateMotionButton();
+    reset.addEventListener('click',()=>{camera.position.copy(initialPosition);controls.target.set(0,0,0);controls.update();targetExplosion=.35;explodeControl.value='35';explodeValue.textContent='35%';select('compressor')});
+    const raycaster=new THREE.Raycaster();const mouse=new THREE.Vector2();let pointerStart=null;
+    canvas.addEventListener('pointerdown',e=>{pointerStart={x:e.clientX,y:e.clientY}});
+    canvas.addEventListener('pointerup',e=>{if(!pointerStart)return;const dist=Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y);pointerStart=null;if(dist>9)return;
+      const box=canvas.getBoundingClientRect();mouse.set(((e.clientX-box.left)/box.width)*2-1,-((e.clientY-box.top)/box.height)*2+1);raycaster.setFromCamera(mouse,camera);
+      const hits=raycaster.intersectObject(world,true);for(const hit of hits){let obj=hit.object;while(obj&&obj!==world){if(obj.userData.part){select(obj.userData.part);return}obj=obj.parent}}
+    });
+    function resize(){const w=Math.max(1,viewport.clientWidth),h=Math.max(1,viewport.clientHeight);renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+    new ResizeObserver(resize).observe(viewport);resize();positionStages();loading.hidden=true;
+    const clock=new THREE.Clock();let raf=0;
+    function animate(){raf=requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);explosion+= (targetExplosion-explosion)*Math.min(1,dt*5);positionStages();
+      if(moving){for(let i=0;i<rotorGroups.length;i++)rotorGroups[i].rotation.x+=dt*(i<3?1:-1)*(1.8+speed*9)}controls.update();renderer.render(scene,camera)
+    }animate();
+    document.addEventListener('visibilitychange',()=>{if(document.hidden)clock.stop();else clock.start()});
+    window.addEventListener('pagehide',()=>{cancelAnimationFrame(raf);controls.dispose();renderer.dispose()},{once:true});
+  </script>
+</body>
+</html>
